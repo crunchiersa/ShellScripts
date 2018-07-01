@@ -42,23 +42,23 @@ case $system in
 		ping -c1 -W1 -q $server &>/dev/null
                 status=$( echo $? )
 		if [[ $status == 0 ]] ; then
-			echo "# Stretch non-free"
+			echo "# Stretch non-free" >> /etc/apt/sources.list
 			echo "deb http://$server:$port/ftp.uni-mainz.de/debian/ stretch main non-free" >> /etc/apt/sources.list
 			echo "deb-src http://$server:$port/ftp.uni-mainz.de/debian/ stretch main non-free" >> /etc/apt/sources.list
-			echo "# stretch security"
+			echo "# stretch security" >> /etc/apt/sources.list
 			echo "deb http://$server:$port/security.debian.org/debian-security stretch/updates main contrib" >> /etc/apt/sources.list
 			echo "deb-src http://$server:$port/security.debian.org/debian-security stretch/updates main contrib" >> /etc/apt/sources.list
-			echo "# stretch-updates, previously know as 'volatile'"
+			echo "# stretch-updates, previously know as 'volatile'" >> /etc/apt/sources.list
 			echo "deb http://$server:$port/ftp.uni-mainz.de/debian/ stretch-updates main contrib" >> /etc/apt/sources.list
 			echo "deb-src http://$server:$port/ftp.uni-mainz.de/debian/ stretch-updates main contrib" >> /etc/apt/sources.list
                 else
-			echo "# stretch non-free"
+			echo "# stretch non-free" >> /etc/apt/sources.list
                         echo "deb http://ftp.uni-mainz.de/debian/ stretch main non-free" >> /etc/apt/sources.list
                         echo "deb-src http://ftp.uni-mainz.de/debian/ stretch main non-free" >> /etc/apt/sources.list
-			echo "# stretch-security"
+			echo "# stretch-security" >> /etc/apt/sources.list
                         echo "deb http://security.debian.org/debian-security stretch/updates main contrib" >> /etc/apt/sources.list
                         echo "deb-src http://security.debian.org/debian-security stretch/updates main contrib" >> /etc/apt/sources.list
-			echo "# stretch-updates, previously known as 'volatile'"
+			echo "# stretch-updates, previously known as 'volatile'" >> /etc/apt/sources.list
                         echo "deb http://ftp.uni-mainz.de/debian/ stretch-updates main contrib" >> /etc/apt/sources.list
                         echo "deb-src http://ftp.uni-mainz.de/debian/ stretch-updates main contrib" >> /etc/apt/sources.list
                 fi
