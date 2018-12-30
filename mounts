@@ -42,6 +42,8 @@ umount_share () {
 #set +x ## Deactivate Debugging
  		}
 
+nas=IP  ## ADD IP OF DEVICE HERE
+dc2=IP	## ADD IP OF DEVICE2 HERE
 
 # Array of mounting points as defined in /etc/fstab.
 declare -a mounts=(	[0]="/home/crunchie/crunchienas" 
@@ -53,10 +55,10 @@ declare -a mounts=(	[0]="/home/crunchie/crunchienas"
 			[6]="/home/crunchie/netdwnld" 
 			[7]="/home/crunchie/backup"
 			)
-ping -c 1 10.10.50.2 &>2
+ping -c 1 $dc2 &>2
 dcpingable=$?
 
-ping -c 1 10.10.37.3 &>2
+ping -c 1 $nas &>2
 naspingable=$?
 
 if [ $naspingable == 0 -a $dcpingable == 0 ]; then
