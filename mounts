@@ -1,0 +1,88 @@
+#!/bin/bash
+##AUTHOR: crunchie
+##DATE: 18.12.2018
+##mounts.sh - Mounting and umounting smbshares as defined in /etc/fstab. PARAMETERS: mount = mounts all shares umount = umounts all shares.
+##Version: 1.0
+
+# Function to mount a share. Parameter $1 ist mounting point as defined in /etc/fstab.
+mount_share () {
+#set -x ## Uncommentto activate Debugging
+	findmnt $1 &>2
+	sharefound=$?
+		if [ $sharefound == 1 ]; then 
+			mount $1 &>2
+			mountedok=$?
+			if [ $mountedok == 0 ]; then
+				logger "Mounted " $1
+			elif [ $mountedok == 1 ]; then
+				logger $1 " could not be mounted."
+			fi
+		elif [ $sharefound == 0 ]; then
+			logger $1 " already mounted."
+		fi
+#set +x ## Deactivate Debugging
+		}
+
+# Function to umount a share. Parameter $1 ist mounting point as defined in /etc/fstab.
+umount_share () {
+#set -x ## Activate Debugging
+	findmnt $1 &>2 
+	sharefound=$?
+		if [ $sharefound == 1 ]; then 
+			logger $1 " is not mounted."
+		elif [ $sharefound == 0 ]; then
+        	 	umount $1 &>2
+			umountedok=$?
+			if [ $umountedok == 0 ]; then
+				logger $1 " has been umounted."
+			elif [ $umountedok == 1 ]; then
+				logger $1 " couldn't be umounted."
+			fi
+ 		fi
+#set +x ## Deactivate Debugging
+ 		}
+
+
+# Array of mounting points as defined in /etc/fstab.
+declare -a mounts=(	[0]="/home/crunchie/crunchienas" 
+			[1]="/home/crunchie/install" 
+			[2]="/home/crunchie/Videos/nasvideos" 
+			[3]="/home/crunchie/datennas" 
+			[4]="/home/crunchie/Bilder/nasbilder" 
+			[5]="/home/crunchie/scanordner"
+			[6]="/home/crunchie/netdwnld" 
+			[7]="/home/crunchie/backup"
+			)
+ping -c 1 10.10.50.2 &>2
+dcpingable=$?
+
+ping -c 1 10.10.37.3 &>2
+naspingable=$?
+
+if [ $naspingable == 0 -a $dcpingable == 0 ]; then
+	case "$1" in
+
+		mount)
+			# Looping through array to check each entry if it should be mmounted.
+			for (( i=0; i<${#mounts[@]}; i++ ));
+			do
+  				mount_share ${mounts[i]}
+			done
+			;;
+
+		umount)
+			# Looping through array to check each entry if it should be umounted.
+			for (( i=0; i<${#mounts[@]}; i++ ));
+			do
+   				umount_share ${mounts[i]}
+			done
+			;;
+		*)
+			echo "No parameters given. Please use parameter mount or umount."
+			;;
+	esac
+
+elif [ $naspingable == 1 ] || [ $dcpingable == 1 ]; then
+	logger  "One of the servers is not reachable. Cannot mount/umount shares."
+fi
+exit 0
