@@ -37,7 +37,7 @@ else
 			echo "Password written to file "$HOME"/passphrase.txt."
 		else
 			echo "Error occurred while writing password to file. Program will now abort!"
-			exit 3
+			exit 2
 		fi
 
 # Remove original file after ecryption.
@@ -47,7 +47,7 @@ else
 			echo "Original file has been deleted."
 		else
 			echo "Error occurred while deleting original file. Program will now abort!"
-			exit 4
+			exit 3
 		fi
 fi
 
