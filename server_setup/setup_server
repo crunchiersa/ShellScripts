@@ -1,0 +1,141 @@
+#!/bin/bash
+##AUTHOR: crunchie
+##DATE: 08.01.2019
+##setup_server - Script to setup basic server functionality. Script depends on files in the subfolders. 
+## Parameter must be passed to define which services should be enabled.
+##Version: 1.0
+
+#######################################
+## SYSTEM WIDE CONFIGFILES FUNCTIONS ##
+#######################################
+set_ssh () {
+if [ -d /etc/orig ]; then
+	cp /etc/ssh/sshd_config /etc/orig/sshd_config
+	cp $origpath/general_configs/sshd_config /etc/ssh/sshd_config 
+else
+	mkdir /etc/orig
+        cp /etc/ssh/sshd_config /etc/orig/sshd_config
+        cp $origpath/general_configs/sshd_config /etc/ssh/sshd_config 
+fi
+}
+
+set_rsnap () {
+if grep -q $group /etc/group; then
+	usermod -aG sambashare $user
+else
+	groupadd $group
+	usermod -aG sambashare $user
+fi
+
+if [ -d /etc/orig ]; then
+        mv /etc/rsnapshot.conf /etc/orig/rsnapshot.conf
+        cp $origpath/general_configs/rsnapshot.conf /etc/ssh//rsnapshot.conf
+else
+        mkdir /etc/orig
+        mv /etc/ssh/rsnapshot.conf /etc/orig/rsnapshot.conf
+        cp $origpath/general_configs/rsnapshot.conf /etc/ssh/rsnapshot.conf
+fi
+}
+
+#################################
+## USER SPACE CONFIG FUNCTIONS ##
+#################################
+set_scripts_user () {
+if [ -d /home/$user/bin ]; then
+	cp $origpath/user_configs/set_apt-sources.sh /home/$user/bin
+	cp $origpath/user_configs/update_and_move.sh /home/$user/bin
+	cp $origpath/user_configs/chown_backup /home/$user/bin
+	chown -R $user:$user /home/$user/bin
+else
+	mkdir -p /home/$user/bin
+	cp $origpath/user_configs/set_apt-sources.sh /home/$user/bin
+	cp $origpath/user_configs/update_and_move.sh /home/$user/bin
+	cp $origpath/user_configs/chown_backup /home/$user/bin
+	chown -R $user:$user /home/$user/bin
+fi
+}
+
+set_ssh_con () {
+if [ -d /home/$user/.ssh ];then
+	cp $origpath/user_configs/authorized_keys /home/$user/authorized_keys
+	chown -R $user:$user /home/$user/.ssh
+else
+	mkdir -p /home/$user/.ssh
+	cp $origpath/user_configs/authorized_keys /home/$user/authorized_keys
+	chown -R $user:$user /home/$user/.ssh
+fi
+}
+
+set_user_cron ()  {
+if [ -f /var/spool/cron/crontabs/$user ];then
+     	cp $origpath/user_configs/crontab /var/spool/cron/crontabs/$user
+else 
+	mkdir -p /var/spool/cron/crontabs/
+	cp $origpath/user_configs/crontab /var/spool/cron/crontabs/$user
+fi
+}
+
+#################################
+## ROOT SPACE CONFIG FUNCTIONS ##
+#################################
+set_scripts_root () {
+if [ -d /home/root/bin ]; then
+        cp $origpath/root_configs/set_apt-sources.sh /home/root/bin
+	cp $origpath/root_configs/update_and_move.sh /home/root/bin
+else
+        mkdir -p /home/root/bin
+        cp $origpath/root_configs/set_apt-sources.sh /home/$user/bin
+        cp $origpath/root_configs/update_and_move.sh /home/$user/bin
+fi
+}
+
+set_root_cron () {
+if [ -f /var/spool/cron/crontabs/root ];then
+        cp $origpath/root_configs/crontab /var/spool/cron/crontabs/root
+else 
+     	mkdir -p /var/spool/cron/crontabs/
+        cp $origpath/root_configs/crontab /var/spool/cron/crontabs/root
+fi
+}
+
+###################
+## EXECUTE PHASE ##
+###################
+
+# Check if executing User is root, if not --> exit with error!
+if [ "$(id -u)" != "0" ]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+# Set variables
+user=username		## INSERT USER
+group=groupname		## INSERT GROUP
+origpath=`pwd`
+servtype=$1
+
+case $servtype in
+		"normal")	apt-get install sudo -y
+				usermod -aG sudo $user
+				set_ssh
+				/etc/init.d/ssh restart
+				set_ssh_con
+				set_scripts_user
+				set_scripts_root
+				set_root_cron
+			;;
+		"backup")	apt-get install sudo rsync rsnapshot -y
+				usermod -aG sudo $user
+				set_ssh
+				/etc/init.d/ssh restart
+				set_rsnap
+				set_ssh_con
+                        	set_scripts_user
+                        	set_scripts_root
+                        	set_root_cron
+			;;
+		*)	echo "No parameter passed. Please use script with parameters."
+			exit 1
+			;;
+esac
+exit 0
