@@ -1,0 +1,47 @@
+#!/bin/bash
+##AUTHOR: crunchie
+##DATE: 06.01.2019
+##chown_backup - Rsnapshot is called with given parameter. The user and group to whom ownership is transferred 
+## are defined in the beginningof script. Location of folders to be chown alos defined.
+## Parameter for case are expected when script is called.
+##Version: 1.0
+
+# Check if executing User is root, if not --> exit with error!
+if [ "$(id -u)" != "0" ]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+# Declarations of variables
+user=username                   ## Declare user
+group=groupname                ## Declare group
+location=/path/to/backup     ## Declare location
+fol=".*"
+
+case "$1" in
+
+	hourly)
+		rsnapshot $1
+		chown -R $user:$group $location$1$fol
+		logger "Changed owner of $1-Snapshot."
+		;;
+	daily)
+		rsnapshot $1
+		chown -R $user:$group $location$1$fol
+		logger "Changed owner of $1-Snapshot."
+		;;
+	weekly)
+		rsnapshot $1
+		chown -R $user:$group $location$1$fol
+		logger "Changed owner of $1-Snapshot."
+		;;
+	monthly)
+		rsnapshot $1
+		chown -R $user:$group $location$1$fol
+		logger "Changed owner of $1-Snapshot."
+		;;
+	*)
+		logger "No parameter given."
+		;;
+esac
+exit 0
