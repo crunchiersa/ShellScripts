@@ -241,6 +241,7 @@ case $servtype in
 				    set_user_config
 				    set_scripts_root
 				    set_root_config
+                    set_root_ssh_con
 				    install_sw update
                     set_root_cron $servtype
 			;;
@@ -249,11 +250,13 @@ case $servtype in
 				    set_ssh
 				    /etc/init.d/ssh restart
 				    set_rsnap
+                    set_ssh_con
 				    set_root_ssh_con
                     set_scripts_user
 				    set_user_config
                     set_scripts_root
 				    set_root_config
+                    set_root_ssh_con
                     install_sw update
                    	set_root_cron $servtype
 			;;
