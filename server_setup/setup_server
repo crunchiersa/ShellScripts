@@ -25,11 +25,11 @@ fi
 set_rsnap () {
 if [ -d /etc/orig ]; then
     mv /etc/rsnapshot.conf /etc/orig/rsnapshot.conf
-    cp $origpath/general_configs/rsnapshot.conf /etc/ssh//rsnapshot.conf
+    cp $origpath/general_configs/rsnapshot.conf /etc/rsnapshot.conf
 else
     mkdir /etc/orig
     mv /etc/ssh/rsnapshot.conf /etc/orig/rsnapshot.conf
-    cp $origpath/general_configs/rsnapshot.conf /etc/ssh/rsnapshot.conf
+    cp $origpath/general_configs/rsnapshot.conf /etc/rsnapshot.conf
 fi
 }
 
