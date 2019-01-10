@@ -1,13 +1,14 @@
 #!/bin/bash
 ##AUTHOR: crunchie
-##DATE: 08.01.2019
+##DATE: 10.01.2019
 ##setup_server - Script to setup basic server functionality. Script depends on files in the subfolders. 
 ## Parameter must be passed to define which services should be enabled.
-## Version: 1.2
+## Version: 1.3
 ## CHANGES V1.1: Minor adjustments in Coding. Additional function to check if user and group exist, and 
 ## create them if they don't exist. .bashrc and .bash_aliases are now added in user-home and root- 
 ## home. user has green name and location in bash, root has red.
 ## CHANGES V1.2: Additional function to install software and do a update when finishing up.
+## CHANGES V1.3: Change to function set_ssh_con to also install 
 
 #######################################
 ## SYSTEM WIDE CONFIGFILES FUNCTIONS ##
@@ -55,9 +56,9 @@ fi
 
 install_sw () {
 if [ "$1" == "normal" ]; then
-    apt-get install sudo rsync dnsutils -y
+    apt-get install sudo rsync dnsutils open-vm-tools -y
 elif [ "$1" == "backup" ]; then
-    apt-get install sudo rsync dnsutils rsnapshot -y
+    apt-get install sudo rsync dnsutils rsnapshot open-vm-tools -y
 elif [ "$1" == "update" ]; then
     /root/bin/set_apt-sources.sh
     /root/bin/update_and_move.sh
@@ -102,11 +103,29 @@ fi
 set_ssh_con () {
 if [ -d /home/$user/.ssh ];then
 	cp $origpath/user_configs/authorized_keys /home/$user/.ssh/authorized_keys
+    cp $origpath/user_configs/$keyname    /home/$user/.ssh/$keyname
+    cp $origpath/user_configs/$pkeyname    /home/$user/.ssh/$pkeyname
+    cp $origpath/user_configs/config    /home/$user/.ssh/config
+    if [ -d /home/$user/.ssh/tmp ];then
+        touch /home/$user/.ssh/tmp/pseudofile
+        rm /home/$user/.ssh/tmp/pseudofile
+    else 
+        mkdir /home/$user/.ssh/tmp
+    fi
 	chown -R $user:$user /home/$user/.ssh
 else
 	mkdir -p /home/$user/.ssh
-	cp $origpath/user_configs/authorized_keys /home/$user/.ssh/authorized_keys
-	chown -R $user:$user /home/$user/.ssh
+    	cp $origpath/user_configs/authorized_keys /home/$user/.ssh/authorized_keys
+        cp $origpath/user_configs/$keyname    /home/$user/.ssh/$keyname
+        cp $origpath/user_configs/$pkeyname    /home/$user/.ssh/$pkeyname
+        cp $origpath/user_configs/config    /home/$user/.ssh/config
+        if [ -d /home/$user/.ssh/tmp ];then
+            touch /home/$user/.ssh/tmp/pseudofile
+            rm /home/$user/.ssh/tmp/pseudofile
+        else
+            mkdir /home/$user/.ssh/tmp
+        fi
+	    chown -R $user:$user /home/$user/.ssh
 fi
 }
 
@@ -165,6 +184,35 @@ else
 fi
 }
 
+set_root_ssh_con () {
+if [ -d /root/.ssh ];then
+    cp $origpath/root_configs/authorized_keys /root/.ssh/authorized_keys
+    cp $origpath/root_configs/$keyname    /root/.ssh/$keyname
+    cp $origpath/root_configs/$pkeyname    /root/.ssh/$pkeyname
+    cp $origpath/root_configs/config    /root/.ssh/config
+    if [ -d /root/.ssh/tmp ];then
+        touch /root/.ssh/tmp/pseudofile
+        rm /root/.ssh/tmp/pseudofile
+    else
+        mkdir /root/.ssh/tmp
+    fi
+     chown -R root:root /root/.ssh
+ else
+    mkdir -p /root/.ssh
+    cp $origpath/root_configs/authorized_keys /root/.ssh/authorized_keys
+    cp $origpath/root_configs/$keyname    /root/.ssh/$keyname
+    cp $origpath/root_configs/$pkeyname    /root/.ssh/$pkeyname
+    cp $origpath/root_configs/config    /root/.ssh/config
+    if [ -d /root/.ssh/tmp ];then
+        touch /root/.ssh/tmp/pseudofile
+        rm /root/.ssh/tmp/pseudofile
+    else
+        mkdir /root/.ssh/tmp
+    fi
+     chown -R root:root /root/.ssh
+ fi
+ }
+
 ###################
 ## EXECUTE PHASE ##
 ###################
@@ -176,8 +224,10 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 # Set variables
-user=username ## SET USER
-group=groupname ## SET GROUP
+user=username                   ## SET USER
+group=groupname                 ## SET GROUP
+keyname="ssh-key-name"          ## SET SSH-KEYNAME
+pkeyname="$keyname.pub"
 origpath=`pwd`
 servtype=$1
 
@@ -199,7 +249,7 @@ case $servtype in
 				    set_ssh
 				    /etc/init.d/ssh restart
 				    set_rsnap
-				    set_ssh_con
+				    set_root_ssh_con
                     set_scripts_user
 				    set_user_config
                     set_scripts_root
