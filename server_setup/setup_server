@@ -1,9 +1,14 @@
 #!/bin/bash
 ##AUTHOR: crunchie
-##DATE: 08.01.2019
+##DATE: 10.01.2019
 ##setup_server - Script to setup basic server functionality. Script depends on files in the subfolders. 
 ## Parameter must be passed to define which services should be enabled.
-##Version: 1.0
+## Version: 1.3
+## CHANGES V1.1: Minor adjustments in Coding. Additional function to check if user and group exist, and 
+## create them if they don't exist. .bashrc and .bash_aliases are now added in user-home and root- 
+## home. user has green name and location in bash, root has red.
+## CHANGES V1.2: Additional function to install software and do a update when finishing up.
+## CHANGES V1.3: Change to function set_ssh_con to also install 
 
 #######################################
 ## SYSTEM WIDE CONFIGFILES FUNCTIONS ##
@@ -14,32 +19,72 @@ if [ -d /etc/orig ]; then
 	cp $origpath/general_configs/sshd_config /etc/ssh/sshd_config 
 else
 	mkdir /etc/orig
-        cp /etc/ssh/sshd_config /etc/orig/sshd_config
-        cp $origpath/general_configs/sshd_config /etc/ssh/sshd_config 
+    cp /etc/ssh/sshd_config /etc/orig/sshd_config
+    cp $origpath/general_configs/sshd_config /etc/ssh/sshd_config 
 fi
 }
 
 set_rsnap () {
-if grep -q $group /etc/group; then
-	usermod -aG sambashare $user
+if [ -d /etc/orig ]; then
+    mv /etc/rsnapshot.conf /etc/orig/rsnapshot.conf
+    cp $origpath/general_configs/rsnapshot.conf /etc/rsnapshot.conf
 else
-	groupadd $group
-	usermod -aG sambashare $user
+    mkdir /etc/orig
+    mv /etc/ssh/rsnapshot.conf /etc/orig/rsnapshot.conf
+    cp $origpath/general_configs/rsnapshot.conf /etc/rsnapshot.conf
+fi
+}
+
+set_user_group () {
+if grep -q $user /etc/passwd; then
+	if grep -q $group /etc/group; then
+       	usermod -aG $group,sudo user
+	else
+       	groupadd $group
+       	usermod -aG $group,sudo $user
+	fi
+else 
+    useradd -m -s /bin/bash $user
+    if grep -q $group /etc/group; then
+        usermod -aG $group,sudo  $user
+    else
+        groupadd $group
+        usermod -aG $group,sudo $user
+    fi
+fi
+}
+
+install_sw () {
+if [ "$1" == "normal" ]; then
+    apt-get install sudo rsync dnsutils open-vm-tools -y
+elif [ "$1" == "backup" ]; then
+    apt-get install sudo rsync dnsutils rsnapshot open-vm-tools -y
+elif [ "$1" == "update" ]; then
+    /root/bin/set_apt-sources.sh
+    /root/bin/update_and_move.sh
 fi
 
-if [ -d /etc/orig ]; then
-        mv /etc/rsnapshot.conf /etc/orig/rsnapshot.conf
-        cp $origpath/general_configs/rsnapshot.conf /etc/ssh//rsnapshot.conf
-else
-        mkdir /etc/orig
-        mv /etc/ssh/rsnapshot.conf /etc/orig/rsnapshot.conf
-        cp $origpath/general_configs/rsnapshot.conf /etc/ssh/rsnapshot.conf
-fi
+
 }
 
 #################################
 ## USER SPACE CONFIG FUNCTIONS ##
 #################################
+set_user_config () {
+	if [ -d /home/$user/orig ]; then
+		mv /home/$user/.bashrc /home/$user/orig
+		mv /home/$user/.bash_aliases /home/$user/orig
+		cp $origpath/user_configs/.bashrc /home/$user
+		cp $origpath/user_configs/.bash_aliases /home/$user
+	else
+		mkdir /home/$user/orig
+		mv /home/$user/.bashrc /home/$user/orig
+        mv /home/$user/.bash_aliases /home/$user/orig
+        cp $origpath/user_configs/.bashrc /home/$user
+        cp $origpath/user_configs/.bash_aliases /home/$user
+	fi
+}
+
 set_scripts_user () {
 if [ -d /home/$user/bin ]; then
 	cp $origpath/user_configs/set_apt-sources.sh /home/$user/bin
@@ -57,18 +102,36 @@ fi
 
 set_ssh_con () {
 if [ -d /home/$user/.ssh ];then
-	cp $origpath/user_configs/authorized_keys /home/$user/authorized_keys
+	cp $origpath/user_configs/authorized_keys /home/$user/.ssh/authorized_keys
+    cp $origpath/user_configs/$keyname    /home/$user/.ssh/$keyname
+    cp $origpath/user_configs/$pkeyname    /home/$user/.ssh/$pkeyname
+    cp $origpath/user_configs/config    /home/$user/.ssh/config
+    if [ -d /home/$user/.ssh/tmp ];then
+        touch /home/$user/.ssh/tmp/pseudofile
+        rm /home/$user/.ssh/tmp/pseudofile
+    else 
+        mkdir /home/$user/.ssh/tmp
+    fi
 	chown -R $user:$user /home/$user/.ssh
 else
 	mkdir -p /home/$user/.ssh
-	cp $origpath/user_configs/authorized_keys /home/$user/authorized_keys
-	chown -R $user:$user /home/$user/.ssh
+    	cp $origpath/user_configs/authorized_keys /home/$user/.ssh/authorized_keys
+        cp $origpath/user_configs/$keyname    /home/$user/.ssh/$keyname
+        cp $origpath/user_configs/$pkeyname    /home/$user/.ssh/$pkeyname
+        cp $origpath/user_configs/config    /home/$user/.ssh/config
+        if [ -d /home/$user/.ssh/tmp ];then
+            touch /home/$user/.ssh/tmp/pseudofile
+            rm /home/$user/.ssh/tmp/pseudofile
+        else
+            mkdir /home/$user/.ssh/tmp
+        fi
+	    chown -R $user:$user /home/$user/.ssh
 fi
 }
 
 set_user_cron ()  {
 if [ -f /var/spool/cron/crontabs/$user ];then
-     	cp $origpath/user_configs/crontab /var/spool/cron/crontabs/$user
+    cp $origpath/user_configs/crontab /var/spool/cron/crontabs/$user
 else 
 	mkdir -p /var/spool/cron/crontabs/
 	cp $origpath/user_configs/crontab /var/spool/cron/crontabs/$user
@@ -78,25 +141,77 @@ fi
 #################################
 ## ROOT SPACE CONFIG FUNCTIONS ##
 #################################
+set_root_config () {
+        if [ -d /root/orig ]; then
+                mv /root/.bashrc /home/$user/orig
+                mv /root/.bash_aliases /home/$user/orig
+                cp $origpath/root_configs/.bashrc /root
+                cp $origpath/root_configs/.bash_aliases /root
+        else
+                mkdir /root/orig
+                mv /root/.bashrc /root/orig
+                mv /root/.bash_aliases /root/orig
+                cp $origpath/root_configs/.bashrc /root
+                cp $origpath/root_configs/.bash_aliases /root
+        fi
+}
+
 set_scripts_root () {
-if [ -d /home/root/bin ]; then
-        cp $origpath/root_configs/set_apt-sources.sh /home/root/bin
-	cp $origpath/root_configs/update_and_move.sh /home/root/bin
+if [ -d /root/bin ]; then
+        cp $origpath/root_configs/set_apt-sources.sh /root/bin
+	    cp $origpath/root_configs/update_and_move.sh /root/bin
 else
-        mkdir -p /home/root/bin
-        cp $origpath/root_configs/set_apt-sources.sh /home/$user/bin
-        cp $origpath/root_configs/update_and_move.sh /home/$user/bin
+        mkdir -p /root/bin
+        cp $origpath/root_configs/set_apt-sources.sh /root/bin
+        cp $origpath/root_configs/update_and_move.sh /root/bin
 fi
 }
 
 set_root_cron () {
 if [ -f /var/spool/cron/crontabs/root ];then
-        cp $origpath/root_configs/crontab /var/spool/cron/crontabs/root
+	if [ "$1" == "backup" ]; then
+        	cp $origpath/root_configs/crontab_backup /var/spool/cron/crontabs/root
+	elif [ "$1" == "normal" ]; then
+		cp $origpath/root_configs/crontab_normal /var/spool/cron/crontabs/root
+	fi
 else 
      	mkdir -p /var/spool/cron/crontabs/
-        cp $origpath/root_configs/crontab /var/spool/cron/crontabs/root
+	if [ "$1" == "backup" ]; then 
+        	cp $origpath/root_configs/crontab_backup /var/spool/cron/crontabs/root
+	elif [ "$1" == "normal" ]; then 
+		cp $origpath/root_configs/crontab_normal /var/spool/cron/crontabs/root
+	fi
 fi
 }
+
+set_root_ssh_con () {
+if [ -d /root/.ssh ];then
+    cp $origpath/root_configs/authorized_keys /root/.ssh/authorized_keys
+    cp $origpath/root_configs/$keyname    /root/.ssh/$keyname
+    cp $origpath/root_configs/$pkeyname    /root/.ssh/$pkeyname
+    cp $origpath/root_configs/config    /root/.ssh/config
+    if [ -d /root/.ssh/tmp ];then
+        touch /root/.ssh/tmp/pseudofile
+        rm /root/.ssh/tmp/pseudofile
+    else
+        mkdir /root/.ssh/tmp
+    fi
+     chown -R root:root /root/.ssh
+ else
+    mkdir -p /root/.ssh
+    cp $origpath/root_configs/authorized_keys /root/.ssh/authorized_keys
+    cp $origpath/root_configs/$keyname    /root/.ssh/$keyname
+    cp $origpath/root_configs/$pkeyname    /root/.ssh/$pkeyname
+    cp $origpath/root_configs/config    /root/.ssh/config
+    if [ -d /root/.ssh/tmp ];then
+        touch /root/.ssh/tmp/pseudofile
+        rm /root/.ssh/tmp/pseudofile
+    else
+        mkdir /root/.ssh/tmp
+    fi
+     chown -R root:root /root/.ssh
+ fi
+ }
 
 ###################
 ## EXECUTE PHASE ##
@@ -109,30 +224,41 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 # Set variables
-user=username		## INSERT USER
-group=groupname		## INSERT GROUP
+user=username                   ## SET USER
+group=groupname                 ## SET GROUP
+keyname="ssh-key-name"          ## SET SSH-KEYNAME
+pkeyname="$keyname.pub"
 origpath=`pwd`
 servtype=$1
 
 case $servtype in
-		"normal")	apt-get install sudo -y
-				usermod -aG sudo $user
-				set_ssh
-				/etc/init.d/ssh restart
-				set_ssh_con
-				set_scripts_user
-				set_scripts_root
-				set_root_cron
+		"normal")   install_sw $servtype
+				    set_user_group
+				    set_ssh
+				    /etc/init.d/ssh restart
+				    set_ssh_con
+				    set_scripts_user
+				    set_user_config
+				    set_scripts_root
+				    set_root_config
+                    set_root_ssh_con
+				    install_sw update
+                    set_root_cron $servtype
 			;;
-		"backup")	apt-get install sudo rsync rsnapshot -y
-				usermod -aG sudo $user
-				set_ssh
-				/etc/init.d/ssh restart
-				set_rsnap
-				set_ssh_con
-                        	set_scripts_user
-                        	set_scripts_root
-                        	set_root_cron
+		"backup")	install_sw $servtype
+				    set_user_group
+				    set_ssh
+				    /etc/init.d/ssh restart
+				    set_rsnap
+                    set_ssh_con
+				    set_root_ssh_con
+                    set_scripts_user
+				    set_user_config
+                    set_scripts_root
+				    set_root_config
+                    set_root_ssh_con
+                    install_sw update
+                   	set_root_cron $servtype
 			;;
 		*)	echo "No parameter passed. Please use script with parameters."
 			exit 1

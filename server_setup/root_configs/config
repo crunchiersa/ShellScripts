@@ -1,0 +1,14 @@
+# Config-File for SSH-Logins to Servers
+# Example host
+# Host myshortname realname.example.com
+#    HostName realname.example.com
+#    IdentityFile ~/.ssh/realname_rsa # private key for realname
+#    User remoteusername
+ControlMaster auto
+ControlPath   /root/.ssh/tmp/%h_%p_%r
+
+## EXAMPLE
+Host myshortname realname.example.com               ## These names can be used for quick-ssh-call i.e. ssh myshortname
+    HostName realname.example.com                   ## IP OR FQDN
+    IdentityFile ~/.ssh/realname_rsa                ## Identity-File for passwordless login
+    User remoteusername                             ## Username to be used for login

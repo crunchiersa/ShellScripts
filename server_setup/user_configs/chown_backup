@@ -13,9 +13,9 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 # Declarations of variables
-user=username                   ## Declare user
-group=groupname                ## Declare group
-location=/path/to/backup     ## Declare location
+user=crunchie                   ## Declare user
+group=sambashare                ## Declare group
+location=/backup/rsnapshot/     ## Declare location
 fol=".*"
 
 case "$1" in

@@ -17,7 +17,7 @@ fi
 # define two variables for current day and date including hour and minute
 cdate=$(date +%Y-%m-%d_%H-%M)
 day=$(date +%Y-%m-%d)
-user=username ## ADD USERNAME HERE
+user=username       ## ADD USERNAME HERE
 
 
 # Check if directory fo current day already exists, if not create such directory
