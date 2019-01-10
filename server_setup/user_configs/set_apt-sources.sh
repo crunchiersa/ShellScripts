@@ -13,7 +13,7 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 # Set variables; server=IP of apt-cache-server; os= debian or raspbian, automatically detected --> source-entries must be different!
-server=IP # Should be IP or FQDN for wanted apt-cache/apt-mirror.
+server=IP/FQDN # Should be IP or FQDN for wanted apt-cache/apt-mirror.
 port=3142 # Should be port set in config of apt-cache/apt-mirror.
 system=$(cat /etc/os-release | grep _NAME= | sed -r 's/.{13}//' | sed -r 's/.{23}$//' | tr '[:upper:]' '[:lower:]')"-"$(cat /etc/*-release | grep VERSION= | sed -r 's/.{12}//' | sed -r 's/.{2}$//')
 
