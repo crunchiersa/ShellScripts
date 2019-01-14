@@ -1,0 +1,84 @@
+#!/bin/bash
+##AUTHOR: crunchie
+##DATE: 14.01.2018
+##rsync.sh - Script to rsync specific folders between two locations. If a local folder does not exist it will be created. 
+##Version: 2.0
+## CHANGES V2.0: Folders to be rsynced need to be passed as parameter -d. Multiple folders can be passed via multiple -d entries.
+
+
+#################
+##  FUNCTIONS  ##
+#################
+
+rsync_data () {
+
+	if [ -d $locpath$1 ]; then
+		rsync -a $sshcon:$rempath$1		$locpath$1
+		chown -R $user:$group $locpath$1
+	else
+		mkdir -p $locpath$1
+        rsync -a $sshcon:$rempath$1             $locpath$1
+        chown -R $user:$group $locpath$1
+	fi
+}
+
+set_user_group () {
+    if grep -q $user /etc/passwd; then
+        if grep -q $group /etc/group; then
+            usermod -aG $group,sudo $user
+        else
+            groupadd $group
+            usermod -aG $group,sudo $user
+        fi
+    else
+        useradd -m -s /bin/bash $user
+        if grep -q $group /etc/group; then
+            usermod -aG $group,sudo  $user
+        else
+            groupadd $group
+            usermod -aG $group,sudo $user
+        fi
+    fi
+}
+
+#######################
+## DECLARE VARIABLES ##
+#######################
+
+ip1=IP  		                    ## ADD IP OF DEVICE HERE
+rempath=/path/on/remote/system/		## Path to folder on remote system
+locpath=/path/on/local/system/		## Path to folder on local system
+sshcon=ssh_connection_name  	    ## Name of ssh connection as defined in ~/.ssh/config
+user=username           			## Name of user to be used in chown
+group=groupname             		## Name of group to be used in chown
+
+###################
+## EXECUTE PHASE ##
+###################
+
+# Check if executing User is root, if not --> exit with error!
+if [ "$(id -u)" != "0" ]; then
+   echo "This script must be run as root" 1>&2
+   exit 1
+fi
+
+ping -c 1 $ip1 &>2
+naspingable=$?
+
+## GET PARAMETERS AND PUT INTO AN ARRAY
+while getopts "d:" opt; do
+    case $opt in
+        d) destination+=("$OPTARG");
+    esac
+done
+shift $((OPTIND -1))
+
+
+set_user_group
+if [ $naspingable == 0 ]; then
+## ${#destination[@]} = number of items in array.
+    for (( i=0; i<${#destination[@]}; i++ ));
+			do
+  				rsync_data ${destination[$i]}
+			done
+fi
